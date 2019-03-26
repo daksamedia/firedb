@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+
+        <meta name="format-detection" content="telephone=no">
+        <meta name="msapplication-tap-highlight" content="no">
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
+        <link rel="stylesheet" type="text/css" href="css/index.css">
+        <title>Hello World</title>
+        <style>
+            input{
+                width: 80%;
+                margin-bottom: 10px;
+                padding:10px;
+            }
+        </style>
+        
+    </head>
+    <body>
+        <div class="app signup">
+            <input class="my_name" type="text" placeholder="input your name" />
+            <input class="my_email" type="text" placeholder="input your email" />
+            <input class="my_pass" type="password" placeholder="input your password" />
+            <br />
+            <button class="signup_btn">Simpan Data</button>
+            <a class="login_now">Sudah terdaftar</a>
+        </div>
+        <div class="app login">
+            <input class="login_email" type="text" placeholder="input your email" />
+            <input class="login_pass" type="password" placeholder="input your password" />
+            <br />
+            <button class="login_btn">Masuk</button>
+        </div>
+        <div class="app home">
+            <div>Hi <span class="gl_name"></span></div>
+            <button class="logout">Keluar</button>
+        </div>
+        <script src="https://www.gstatic.com/firebasejs/5.8.4/firebase.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script>
+            // Initialize Firebase
+            // TODO: Replace with your project's customized code snippet
+            var config = {
+                apiKey: "AIzaSyDPk59_QtkF9ctaPsofdjqVdtNFLgeL3PA",
+                authDomain: "gelaro-dev.firebaseapp.com",
+                databaseURL: "https://gelaro-dev.firebaseio.com/",
+                projectId: "gelaro-dev",
+                storageBucket: "gelaro-dev.appspot.com",
+                messagingSenderId: "398279755377",
+            };
+            firebase.initializeApp(config);
+            
+            if(localStorage.gl_status==undefined || localStorage.getItem("gl_status")=="."){
+                $(".login").hide();
+                $(".home").hide();
+            }else{
+                load_data(localStorage.gl_email);
+                console.log(localStorage.gl_email)
+                $(".signup").hide();
+                $(".login").hide()
+            }
+            
+            var database = firebase.database();
+            var user_db = database.ref('users');
+
+            function writeUserData(userId, name, email, password) {
+                var tgl = new Date().getDate();
+                var bln = new Date().getMonth();
+                var thn = new Date().getFullYear();
+                var jam = new Date().getTime();
+                var rn = tgl+"/"+bln+"/"+thn+" "+jam
+
+                firebase.database().ref('users/' + userId).set({
+                    username: name,
+                    email: email,
+                    password : password,
+                    id:userId,
+                    createDate:rn
+                });
+
+                user_db.on('child_added',function(data){
+                    console.log(JSON.stringify(data))
+                })
+
+            }
+
+            function registration(email,pass){
+                firebase.auth().createUserWithEmailAndPassword(email, pass)
+                .then(function(success){
+                    alert("sukses");
+                    window.location.reload()
+                })
+                .catch(function(error) {
+                    // Handle Errors here.
+                    var errorCode = error.code;
+                    var errorMessage = error.message;
+                    // ...
+                });
+            }
+
+            function load_data(email){
+                firebase.database().ref().child("users").orderByChild("email").equalTo(email).once("value", function (snapshot) {
+                    //console.log(JSON.stringify(snapshot.val()))
+                    snapshot.forEach(function(data) {
+                        console.log(data.val());
+                        $(".gl_name").html(data.val().username)
+                    });
+                });
+            }
+
+            function login(email, pass){
+                firebase.auth().signInWithEmailAndPassword(email, pass)
+                .then(function(success){
+                    alert("masuk");
+                    load_data(email)
+                    localStorage.gl_status = "login";
+                    localStorage.gl_email = email;
+                    //window.location.reload()
+                })
+                .catch(function(error) {
+                    // Handle Errors here.
+                    var errorCode = error.code;
+                    var errorMessage = error.message;
+                    // ...
+                });
+            }
+
+            $(".login_now").click(function(){
+                $(".signup").fadeOut();
+                $(".login").fadeIn()
+            })
+            
+            $("button.signup_btn").click(function(){
+                //alert("test")
+                var inp_name = $(".my_name").val();
+                var inp_email = $(".my_email").val();
+                var inp_pass = $(".my_pass").val();
+                var random_num = Math.round(Math.random()*100000)
+                if(inp_email.length > 0 || inp_name.length > 0 || inp_pass.length > 0){
+                    writeUserData(random_num, inp_name, inp_email, inp_pass)
+                    registration(inp_email,inp_pass)    
+                }else{
+                    alert("Mohon isi selengkapnya")
+                }
+                
+            })
+
+            $("button.login_btn").click(function(){
+                //alert("test")
+                var inp_email = $(".login_email").val();
+                var inp_pass = $(".login_pass").val();
+                if(inp_email.length > 0 || inp_pass.length > 0){
+                    login(inp_email,inp_pass)
+                    //location.reload()
+                }else{
+                    alert("Mohon isi selengkapnya")
+                }
+                
+            });
+
+            $("button.logout").click(function(){
+                firebase.auth().signOut().then(function() {
+                    localStorage.gl_email=".";
+                    localStorage.gl_status="."
+                    alert("keluar")
+                    location.reload()
+                }).catch(function(error) {
+                // An error happened.
+                });
+            })
+        </script>
+        <script type="text/javascript" src="cordova.js"></script>
+        <script type="text/javascript" src="js/index.js"></script>
+    </body>
+</html>
